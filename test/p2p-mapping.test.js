@@ -51,7 +51,7 @@ test('error happens', async () => {
   expect(err).toBe('error happens')
 })
 
-test('register-client', async () => {
+test('register_client', async () => {
   // expect(isCity('Vienna')).toBeTruthy();
   let server_id = 823923;
   const localServer = new MockSocketServer()
@@ -63,11 +63,11 @@ test('register-client', async () => {
     client.on('errMsg', err => {
       resolve(err)
     })
-    client.on('client-registered', data => {
+    client.on('client_registered', data => {
       client.client_peer.destroy() // destroy the peer
       resolve(data)
     })
-    signalSocket.emit('client-registered', { client_id:2 })
+    signalSocket.emit('client_registered', { client_id:2 })
   })
   console.log('data:', data)
   expect(data).toStrictEqual({"client_id":2})
@@ -85,19 +85,19 @@ test('connection from local client, will trigger another connection on remote si
     client.on('errMsg', err => {
       resolve(err)
     })
-    client.on('client-registered', data => {
+    client.on('client_registered', data => {
       client.on('connection', ({client_id, subClientId}) => {
-        client.on('remoteServer-connected', ({client_id, subClientId}) => {
+        client.on('remoteServer_connected', ({client_id, subClientId}) => {
           client.client_peer.destroy() // destroy the peer
           resolve(client)
         })
-        signalSocket.emit('remoteServer-connected', { subClientId:20 }) // step 3
+        signalSocket.emit('remoteServer_connected', { subClientId:20 }) // step 3
       })
       client.peer_connected = true // assume the peer connected through webrtc.
       client.g_subClientId = 20
       localServer.listen(9102) // step 2, emit a local connection
     })
-    signalSocket.emit('client-registered', { client_id:2 }) // step 1
+    signalSocket.emit('client_registered', { client_id:2 }) // step 1
   })
   // console.log(JSON.stringify(client.subClientDict))
   expect(client.client_id).toBe(2)

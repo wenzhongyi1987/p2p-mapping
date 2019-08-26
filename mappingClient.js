@@ -36,8 +36,9 @@ class MappingClient extends EventEmitter {
         if (self.peer_connected &&
             subClientId in self.subClientDict &&
             self.subClientDict[subClientId].remoteConnected) {
-          self.client_peer.send({client_id: self.client_id, subClientId, data})
+          self.client_peer.send(Buffer.from(JSON.stringify({client_id: self.client_id, subClientId, data})))
         } else {
+          console.log('shutdown local socket for subClientId:', subClientId)
           c.end() // close the socket.
         }
       })
@@ -63,30 +64,32 @@ class MappingClient extends EventEmitter {
     })
 
     self.socket.on('connect', () => {
-      self.socket.emit('client-register', { server_id: self.server_id })
+      self.socket.emit('client_register', { server_id: self.server_id })
     })
-    self.socket.on('client-registered', (data) => {
-      console.log('client-registered:', data)
+    self.socket.on('client_registered', (data) => {
+      console.log('client_registered:', data)
       self.client_id = data.client_id
-      // self.socket.emit('client-signal', { self.server_id, self.client_id, signalData:'from client'})
-      self.client_peer = new Peer({ initiator: true, wrtc})
+      // self.socket.emit('client_signal', { self.server_id, self.client_id, signalData:'from client'})
+      self.client_peer = new Peer({ initiator: true, wrtc}) // start from client.
       self.client_peer.on('signal', signalData => {
-        self.socket.emit('client-signal', {
+        self.socket.emit('client_signal', {
           client_id: self.client_id,
           server_id: self.server_id,
           signalData })
       })
       self.client_peer.on('connect', () => {
+        console.log('peer connected.')
         self.peer_connected = true
       })
       self.client_peer.on('data', peer_data => {
-        let { subClientId, data } = peer_data
-        self.subClientDict[subClientId].subClientSocket.send(data)
+        let {client_id, subClientId, data} = JSON.parse(buf.toString())
+        data = Buffer.from(data.data)
+        self.subClientDict[subClientId].subClientSocket.write(data)
       })
-      self.emit('client-registered', data)
+      self.emit('client_registered', data)
     })
-    self.socket.on('server-signal', (data) => {
-      console.log('server-signal:', data)
+    self.socket.on('server_signal', (data) => {
+      console.log('server_signal:', data)
       let { server_id, signalData } = data
       self.client_peer.signal(signalData)
     })
@@ -94,14 +97,15 @@ class MappingClient extends EventEmitter {
       console.log('error:', data)
       self.peer_connected = false
     })
-    self.socket.on('remoteServer-connected', data => {
+    self.socket.on('remoteServer_connected', data => {
       let { subClientId } = data
+      console.log('remoteServer_connected for subClientId:', subClientId)
       if (subClientId in self.subClientDict) {
         self.subClientDict[subClientId].remoteConnected = true
       }
-      self.emit('remoteServer-connected', {client_id:self.client_id, subClientId})
+      self.emit('remoteServer_connected', {client_id:self.client_id, subClientId})
     })
-    self.socket.on('remoteServer-disconnected', data => {
+    self.socket.on('remoteServer_disconnected', data => {
       let { subClientId } = data
       if (subClientId in self.subClientDict) {
         self.subClientDict[subClientId].remoteConnected = false
@@ -109,14 +113,14 @@ class MappingClient extends EventEmitter {
         c.end()
       }
     })
-    self.socket.on('remoteServer-error-connect', data => {
+    self.socket.on('remoteServer_error_connect', data => {
       let { subClientId } = data
       if (subClientId in self.subClientDict) {
         self.subClientDict[subClientId].remoteConnected = false
         let c = self.subClientDict[subClientId].subClientSocket
         c.end()
       }
-      console.log('remoteServer-error-connect for subClientId:', subClientId)
+      console.log('remoteServer_error_connect for subClientId:', subClientId)
     })
   }
 }

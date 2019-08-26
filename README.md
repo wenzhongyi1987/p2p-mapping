@@ -1,2 +1,2 @@
-# p2p-mapping
-Mapping local server port to another machine, using webrtc data channel. 
+# p2p-mappig
+Mapping local server port to another machine across NAT, using webrtc data channel.

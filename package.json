@@ -1,7 +1,7 @@
 {
   "name": "p2p-mapping",
   "version": "1.0.0",
-  "description": "mapping local server port to another machine, using webrtc data channel.",
+  "description": "mapping local server port to another machine across NAT, using webrtc data channel.",
   "main": "index.js",
   "scripts": {
     "test": "jest"
@@ -18,7 +18,7 @@
     "channel"
   ],
   "author": "Yuanzhang Hu",
-  "license": "ISC",
+  "license": "MIT",
   "bugs": {
     "url": "https://github.com/yuanzhanghu/p2p-mapping/issues"
   },
