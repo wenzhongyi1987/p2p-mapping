@@ -33,9 +33,7 @@ class MappingClient extends EventEmitter {
         return
       }
       c.on('data', data => {
-        if (self.peer_connected &&
-            subClientId in self.subClientDict &&
-            self.subClientDict[subClientId].remoteConnected) {
+        if (self.peer_connected) {
           self.client_peer.send(Buffer.from(JSON.stringify({client_id: self.client_id, subClientId, data})))
         } else {
           console.log('shutdown local socket for subClientId:', subClientId)
@@ -81,7 +79,7 @@ class MappingClient extends EventEmitter {
         console.log('peer connected.')
         self.peer_connected = true
       })
-      self.client_peer.on('data', peer_data => {
+      self.client_peer.on('data', buf => {
         let {client_id, subClientId, data} = JSON.parse(buf.toString())
         data = Buffer.from(data.data)
         self.subClientDict[subClientId].subClientSocket.write(data)

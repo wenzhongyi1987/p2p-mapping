@@ -50,7 +50,7 @@ class MappingServer extends EventEmitter {
     })
     self.socket.on('disconnectRemoteServer', ({ client_id, subClientId }) => {
       console.log('disconnectRemoteServer received, client_id:', client_id, 'subClientId:', subClientId)
-      if (subClientId in self.clientDict[client_id].subClientDict[subClientId]) {
+      if (subClientId in self.clientDict[client_id].subClientDict) {
         self.clientDict[client_id].subClientDict[subClientId].socket2server.end() //close the socket to local server.
       }
     })
@@ -62,6 +62,7 @@ class MappingServer extends EventEmitter {
         self.socket.emit('remoteServer_connected', {server_id:self.server_id, client_id, subClientId})
       })
       socket2server.on('data', (data) => {
+        let server_peer = self.clientDict[client_id].server_peer
         server_peer.send(Buffer.from(JSON.stringify({client_id, subClientId, data})))
       })
       socket2server.on('end', () => {
