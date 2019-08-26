@@ -3,6 +3,8 @@ const Peer = require('simple-peer')
 var wrtc = require('wrtc')
 const EventEmitter = require('events')
 
+const delayMs = ms => new Promise(res => setTimeout(res, ms));
+
 class MappingServer extends EventEmitter {
   constructor(server_port, signalSocket) {
     super()
@@ -32,15 +34,32 @@ class MappingServer extends EventEmitter {
         // server_peer.on('connect', () => {  // no connect event for non-initiator
         //  self.clientDict[client_id].peer_connected = true
         // })
-        server_peer.on('data', (buf) => {
+        server_peer.on('data', async (buf) => {
           let {client_id, subClientId, data} = JSON.parse(buf.toString())
           data = Buffer.from(data.data)
           console.log('received peer data from client_id:', client_id, 'subClientId:', subClientId)
           console.log('data:', data)
-          if (subClientId in self.clientDict[client_id].subClientDict &&
-              self.clientDict[client_id].subClientDict[subClientId].connected2LocalServer) {
-            self.clientDict[client_id].subClientDict[subClientId].socket2server.write(data)
+          if (!(subClientId in self.clientDict[client_id].subClientDict)) {
+            self.clientDict[client_id].subClientDict[subClientId] = {dataList:[]}
           }
+          self.clientDict[client_id].subClientDict[subClientId].dataList.push(data)
+          let i = 0;
+          for (i=0; i<5; i++) {
+            console.log('i:', i)
+            if (self.clientDict[client_id].subClientDict[subClientId].connected2LocalServer) {
+              break;
+            }
+            await delayMs(1000)
+          }
+          if (i === 5) { //timeout
+            console.log('timeout...')
+            self.socket.emit('remoteServer_disconnected', {server_id:self.server_id, client_id, subClientId})
+            delete self.clientDict[client_id].subClientDict[subClientId]
+            return;
+          }
+          console.log('i=', i, 'data sent to server.')
+          self.clientDict[client_id].subClientDict[subClientId].socket2server.write(
+            self.clientDict[client_id].subClientDict[subClientId].dataList.shift())
         })
         self.clientDict[client_id] = {
           subClientDict:{},
@@ -77,8 +96,13 @@ class MappingServer extends EventEmitter {
         console.log('error to connect to local server, err:', err)
         self.socket.emit('remoteServer_error_connect', {server_id:self.server_id, client_id, subClientId})
       })
-      self.clientDict[client_id].subClientDict[subClientId] = {
-        socket2server,
+      if (!(subClientId in self.clientDict[client_id].subClientDict)) {
+        self.clientDict[client_id].subClientDict[subClientId] = {
+          socket2server,
+          dataList:[]
+        }
+      } else {
+        self.clientDict[client_id].subClientDict[subClientId].socket2server = socket2server
       }
     })
     self.socket.on('errMsg', (data) => {

@@ -1,5 +1,5 @@
 # p2p-mappig
-Mapping local server port to another machine across NAT, using webrtc data channel.
+Mapping tcp port of local server to another machine across NAT, using webrtc data channel.
 
 ## features
 
@@ -14,7 +14,7 @@ git clone https://github.com/yuanzhanghu/p2p-mapping.git
 ## usage
 #### server side:
 ```
-node p2p-mapping-server.js 23          # mapping port 23/telnet to another machine
+node p2p-mapping-server.js 22          # mapping port 22/ssh to another machine
                                        # which will generate a server_id for the port
 ```
 #### client side:
@@ -23,5 +23,5 @@ node p2p-mapping-client.js <server_id> # establish tunnel between client and ser
 ```
 now we can access remote telnet server by:
 ```
-telnet localhost 9102   # mapped to local port 9102 by default.
+ssh user@localhost -p 9102             # mapped to local port 9102 by default.
 ```
