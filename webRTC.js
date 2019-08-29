@@ -124,7 +124,8 @@ class WebRTC extends EventEmitter {
   }
 
   send(data, label) {
-    if (!Object.keys(this.dataChannels).includes(label)) {
+    if (!(label in this.dataChannels)) {
+      console.log('this.dataChannels:', Object.keys(this.dataChannels), ', label:', label)
       this._createDatachannel(label)
     }
     try {

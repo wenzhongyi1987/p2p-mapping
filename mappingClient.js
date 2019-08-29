@@ -6,6 +6,7 @@ const EventEmitter = require('events')
 var wrtc = require('wrtc')
 const WebRTC = require('./webRTC');
 
+debug.enable('signal')
 class MappingClient extends EventEmitter {
   // const localServer = net.createServer()
   // const signalSocket = io('http://localhost:' + listenPort)
@@ -39,8 +40,8 @@ class MappingClient extends EventEmitter {
       c.on('data', data => {
         if (self.peer_connected) {
           // let buf = Uint8Array.from(JSON.stringify({client_id: self.client_id, subClientId, data}))
-          debugData('send data to peer, data length:', data.length)
-          self.peerOffer.send(data.buffer, subClientId)
+          debugData('send data to peer, data.length:', data.length)
+          self.peerOffer.send(data.buffer, subClientId) //ArrayBuffer
         } else {
           errorLog('peer not connected, shutdown local socket for subClientId:', subClientId)
           c.end() // close the socket.

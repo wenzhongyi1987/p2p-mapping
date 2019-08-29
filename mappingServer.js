@@ -9,6 +9,7 @@ const WebRTC = require('./webRTC');
 
 const delayMs = ms => new Promise(res => setTimeout(res, ms));
 
+debug.enable('signal')
 class MappingServer extends EventEmitter {
   constructor(server_port, signalSocket) {
     super()
@@ -46,7 +47,7 @@ class MappingServer extends EventEmitter {
           let {label, data} = buf // JSON.parse(Uint8Array.from(buf.data).toString())
           let subClientId = label
           // data = Buffer.from(data.data)
-          debugData('received peer data, buf:', data, 'from client_id:', client_id, 'subClientId:', subClientId)
+          debugData('received peer data, data:', data, 'from client_id:', client_id, 'subClientId:', subClientId)
           if (!(subClientId in self.clientDict[client_id].subClientDict)) {
             self.clientDict[client_id].subClientDict[subClientId] = {dataList:[]}
           }
@@ -97,7 +98,7 @@ class MappingServer extends EventEmitter {
               if (buf.length > 200000) {
                 await delayMs(500)
               }
-              debugData('sending data to peer, buf.length:', buf.length)
+              debugData('sending data to peer, buf:', buf.buffer)
               peerAnswer.send(buf.buffer, subClientId)
             }
             setTimeout(self.clientDict[client_id].subClientDict[subClientId].intervalFunc, 10)
