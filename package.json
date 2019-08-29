@@ -24,7 +24,7 @@
   },
   "homepage": "https://github.com/yuanzhanghu/p2p-mapping#readme",
   "dependencies": {
-    "simple-peer": "^9.5.0",
+    "debug": "^4.1.1",
     "socket.io": "^2.2.0",
     "wrtc": "^0.4.1"
   },
