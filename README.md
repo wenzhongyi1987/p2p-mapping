@@ -1,9 +1,30 @@
 # p2p-mappig
-Mapping tcp port of local server to another machine across NAT, using webrtc data channel.
+Mapping tcp port of local server to another machine across NAT, share your servers across NAT! using webrtc data channel.
+
+                          firewall  firewall
+                              +      +
+                              |      |
+                              |      |
+  +------------------------+  |      |    +-----------------------+
+  |                        |  |      |    |                       |
+  |                        |  |      |    |    server listening   |
+  |             port 9102<----mapping+-------- on port 22         |
+  |                        |  |      |    |                       |
+  |                        |  |      |    |                       |
+  |                        |  |      |    |                       |
+  +------------------------+  |      |    +-----------------------+
+            A                 |      |               B
+                              |      |
+                              +      +
+
+  Now we can do 'ssh user@localhost -p 9102'
+  on A, which is actually ssh to B.
 
 ## features
 
-- p2p port mapping, no data relay server is needed.
+- p2p port mapping, no data relay server is needed
+- unique random serverId is generated, to secure your tunnel.
+- it's actually a tunnel, imagine use cases: proxy server, vnc server, etc. you can share your servers across NAT!
 
 ## install
 
