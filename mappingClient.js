@@ -106,7 +106,9 @@ class MappingClient extends EventEmitter {
         let {label, data} = buf
         let subClientId = label
         debugData('received peer data:', data)
-        self.subClientDict[subClientId].subClientSocket.write(Buffer.from(data))
+        if (subClientId in self.subClientDict) { // don't send after local socket closed.
+          self.subClientDict[subClientId].subClientSocket.write(Buffer.from(data))
+        }
       })
       self.emit('client_registered', data)
     })
