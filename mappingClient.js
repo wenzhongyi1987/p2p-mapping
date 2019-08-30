@@ -152,7 +152,6 @@ class MappingClient extends EventEmitter {
         }
         default: {
           errorLog('unknown event:', event)
-          break
         }
       }
     })

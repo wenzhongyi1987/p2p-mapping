@@ -30,16 +30,15 @@ class MappingServer extends EventEmitter {
       debugSignal('server_registered:', data)
       self.emit('server_registered', {serverId:self.serverId})
     })
-    self.socket.on('clientSignal', ({ event, clientId, subClientId, buf }) => {
+    self.socket.on('clientSignal', async ({ event, clientId, subClientId, buf }) => {
       debugSignal('clientId:', clientId, ', subClientId:', subClientId, event, buf)
       switch(event) {
         case 'client_signal_description': {
           let clientSignalData = buf
           if (clientId in self.clientDict) {
-            self.clientDict[clientId].peerAnswer.makeAnswer(clientSignalData, { disable_stun: false})
+            await self.clientDict[clientId].peerAnswer.makeAnswer(clientSignalData, { disable_stun: false})
           } else {
             const peerAnswer = new WebRTC()
-            peerAnswer.makeAnswer(clientSignalData, { disable_stun: false})
             peerAnswer.on('signal_description', signalData => { // server response
               self.socket.emit('serverSignal', {
                 event: 'server_signal_description',
@@ -91,6 +90,7 @@ class MappingServer extends EventEmitter {
               subClientDict:{},
               peerAnswer,
             }
+            await peerAnswer.makeAnswer(clientSignalData, { disable_stun: false})
           }
           break
         }
@@ -174,7 +174,6 @@ class MappingServer extends EventEmitter {
         }
         default: {
           errorLog('unknown event:', event)
-          break
         }
       }
     })

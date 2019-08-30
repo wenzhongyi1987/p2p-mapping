@@ -130,7 +130,7 @@ class WebRTC extends EventEmitter {
     }
   }
 
-  async addIceCandidate(candidate) {
+  addIceCandidate(candidate) {
     return this.rtc.addIceCandidate(candidate)
   }
 
