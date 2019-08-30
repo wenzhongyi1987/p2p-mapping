@@ -1,6 +1,7 @@
 # p2p-mappig
 Mapping tcp port of local server to another machine across NAT, share your servers across NAT! using webrtc data channel.
 
+```
                           firewall  firewall
                               +      +
                               |      |
@@ -19,6 +20,7 @@ Mapping tcp port of local server to another machine across NAT, share your serve
 
   Now we can do 'ssh user@localhost -p 9102'
   on A, which is actually ssh to B.
+```
 
 ## features
 
