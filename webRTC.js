@@ -65,7 +65,8 @@ class WebRTC extends EventEmitter {
       })
     } else {
       peer = new RTCPeerConnection({
-        iceServers: [{ urls: 'stun:stun.webrtc.ecl.ntt.com:3478' }]
+        iceServers: [{ urls: 'stun:stun.webrtc.ecl.ntt.com:3478' },
+                     { urls: 'stun:stun.l.google.com:19302'}]
       })
     }
 

@@ -15,7 +15,7 @@ class MappingClient extends EventEmitter {
     self.serverId = serverId // process.argv[2]
     self.clientId = undefined
     self.peer_connected = false
-    self.peerOffer = undefined // = new Peer({ initiator: true })
+    self.peerOffer = undefined
     self.g_subClientId = 0
     self.subClientDict = {} // to save each clientSocket for subClient
     self.server = localServer

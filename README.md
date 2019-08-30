@@ -14,7 +14,7 @@ Mapping tcp port of local server to another machine across NAT, share your serve
   |                        |  |      |    |                       |
   |                        |  |      |    |                       |
   +------------------------+  |      |    +-----------------------+
-            A                 |      |               B
+          machine A           |      |           machine B
                               |      |
                               +      +
 

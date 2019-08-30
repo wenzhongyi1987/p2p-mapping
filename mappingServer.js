@@ -53,9 +53,6 @@ class MappingServer extends EventEmitter {
                 buf: signalData,
               })
             })
-            // peerAnswer.on('connect', () => {  // no connect event for non-initiator
-            //  self.clientDict[clientId].peer_connected = true
-            // })
             peerAnswer.on('data', async (buf) => {
               debugData('received peer data:', buf)
               let {label, data} = buf // JSON.parse(Uint8Array.from(buf.data).toString())
