@@ -3,139 +3,180 @@ const debugSignal = debug('signal')
 const errorLog = debug('errorLog')
 const debugData = debug('data')
 const net = require('net')
-const wrtc = require("wrtc");
 const EventEmitter = require('events')
-const WebRTC = require('./webRTC');
+const uuidv1 = require('uuid/v1')
+const WebRTC = require('./webRTC')
 
-const delayMs = ms => new Promise(res => setTimeout(res, ms));
+const delayMs = ms => new Promise(res => setTimeout(res, ms))
 
-debug.enable('signal')
 class MappingServer extends EventEmitter {
   constructor(server_port, signalSocket) {
     super()
     let self = this
-    self.server_id = undefined
+    self.serverId = undefined
     self.server_port = server_port // server port to be published to peer.
     self.clientDict = {}
     self.socket = signalSocket
+    self.serverId = uuidv1()
 
     self.socket.on('connect', () => {
-      self.socket.emit('server_register', {})
+      self.socket.emit('server_register', { serverId:self.serverId })
+    })
+    self.socket.on('disconnect', () => {
+      debugSignal('disconnected')
     })
     self.socket.on('server_registered', (data) => {
+      console.log(debug.enabled('signal'))
       debugSignal('server_registered:', data)
-      self.server_id = data.server_id
-      self.emit('server_registered', {server_id:self.server_id})
+      self.emit('server_registered', {serverId:self.serverId})
     })
-    self.socket.on('client_signal', (data) => {
-      debugSignal('client_signal:', data)
-      let { client_id, signalData } = data
-      let clientSignalData = signalData
-      if (client_id in self.clientDict) {
-        self.clientDict[client_id].peerAnswer.makeAnswer(sdp, { disable_stun: false});
-      } else {
-        const peerAnswer = new WebRTC();
-        peerAnswer.makeAnswer(clientSignalData, { disable_stun: false});
-        peerAnswer.on('signal', signalData => { // server response
-          self.socket.emit('server_signal', { client_id, server_id:self.server_id, signalData })
-        })
-        // peerAnswer.on('connect', () => {  // no connect event for non-initiator
-        //  self.clientDict[client_id].peer_connected = true
-        // })
-        peerAnswer.on('data', async (buf) => {
-          debugData('received peer data:', buf)
-          let {label, data} = buf // JSON.parse(Uint8Array.from(buf.data).toString())
-          let subClientId = label
-          // data = Buffer.from(data.data)
-          debugData('received peer data, data:', data, 'from client_id:', client_id, 'subClientId:', subClientId)
-          if (!(subClientId in self.clientDict[client_id].subClientDict)) {
-            self.clientDict[client_id].subClientDict[subClientId] = {dataList:[]}
-          }
-          self.clientDict[client_id].subClientDict[subClientId].dataList.push(data)
-          let i = 0;
-          for (i=0; i<5; i++) {
-            if (self.clientDict[client_id].subClientDict[subClientId].connected2LocalServer) {
-              break;
-            }
-            await delayMs(1000)
-          }
-          if (i === 5) { //timeout
-            errorLog('timeout. to connect local server...')
-            self.socket.emit('remoteServer_disconnected', {server_id:self.server_id, client_id, subClientId})
-            delete self.clientDict[client_id].subClientDict[subClientId]
-            return;
-          }
-          let buf2server = self.clientDict[client_id].subClientDict[subClientId].dataList.shift()
-          debugData('i=', i, 'data sent to server. buf:', buf2server)
-          self.clientDict[client_id].subClientDict[subClientId].socket2server.write(Buffer.from(buf2server))
-        })
-        self.clientDict[client_id] = {
-          subClientDict:{},
-          peerAnswer,
-        }
-      }
-    })
-    self.socket.on('disconnectRemoteServer', ({ client_id, subClientId }) => {
-      debugSignal('disconnectRemoteServer received, client_id:', client_id, 'subClientId:', subClientId)
-      if (subClientId in self.clientDict[client_id].subClientDict) {
-        self.clientDict[client_id].subClientDict[subClientId].socket2server.end() //close the socket to local server.
-      }
-    })
-    self.socket.on('connectRemoteServer', ({ client_id, subClientId }) => {
-      const socket2server = net.createConnection({ port: parseInt(self.server_port)}, () => {
-        // 'connect' listener
-        debugSignal('connected to server for client_id:', client_id, 'subClientId:', subClientId)
-        self.clientDict[client_id].subClientDict[subClientId].connected2LocalServer = true
-        self.socket.emit('remoteServer_connected', {server_id:self.server_id, client_id, subClientId})
-        self.clientDict[client_id].subClientDict[subClientId].intervalFunc = async () => {
-          if (subClientId in self.clientDict[client_id].subClientDict) {
-            // peer sending thread
-            let sendBufList = self.clientDict[client_id].subClientDict[subClientId].sendBufList
-            let buf = sendBufList.shift()
-            if (buf) {
-              let peerAnswer = self.clientDict[client_id].peerAnswer
-              // debugData('bufferedAmount:', peerAnswer._channel.bufferedAmount)
-              if (buf.length > 200000) {
-                await delayMs(500)
+    self.socket.on('clientSignal', ({ event, clientId, subClientId, buf }) => {
+      debugSignal('clientId:', clientId, ', subClientId:', subClientId, event, buf)
+      switch(event) {
+        case 'client_signal_description': {
+          let clientSignalData = buf
+          if (clientId in self.clientDict) {
+            self.clientDict[clientId].peerAnswer.makeAnswer(clientSignalData, { disable_stun: false})
+          } else {
+            const peerAnswer = new WebRTC()
+            peerAnswer.makeAnswer(clientSignalData, { disable_stun: false})
+            peerAnswer.on('signal_description', signalData => { // server response
+              self.socket.emit('serverSignal', {
+                event: 'server_signal_description',
+                clientId, serverId:self.serverId,
+                buf: signalData,
+              })
+            })
+            peerAnswer.on('signal_candidate', signalData => { // server response
+              self.socket.emit('serverSignal', {
+                event: 'server_signal_candidate',
+                clientId, serverId:self.serverId,
+                buf: signalData,
+              })
+            })
+            // peerAnswer.on('connect', () => {  // no connect event for non-initiator
+            //  self.clientDict[clientId].peer_connected = true
+            // })
+            peerAnswer.on('data', async (buf) => {
+              debugData('received peer data:', buf)
+              let {label, data} = buf // JSON.parse(Uint8Array.from(buf.data).toString())
+              let subClientId = label
+              // data = Buffer.from(data.data)
+              debugData('received peer data, data:', data, 'from clientId:', clientId, 'subClientId:', subClientId)
+              if (!(subClientId in self.clientDict[clientId].subClientDict)) {
+                self.clientDict[clientId].subClientDict[subClientId] = {dataList:[]}
               }
-              debugData('sending data to peer, buf:', buf.buffer)
-              peerAnswer.send(buf.buffer, subClientId)
+              self.clientDict[clientId].subClientDict[subClientId].dataList.push(data)
+              let i = 0
+              for (i=0; i<5; i++) {
+                if (self.clientDict[clientId].subClientDict[subClientId].connected2LocalServer) {
+                  break
+                }
+                await delayMs(1000)
+              }
+              if (i === 5) { //timeout
+                errorLog('timeout. to connect local server...')
+                self.socket.emit('serverSignal', {
+                  event: 'remoteServer_disconnected',
+                  serverId:self.serverId, clientId, subClientId
+                })
+                delete self.clientDict[clientId].subClientDict[subClientId]
+                return
+              }
+              let buf2server = self.clientDict[clientId].subClientDict[subClientId].dataList.shift()
+              debugData('i=', i, 'data sent to server. buf:', buf2server)
+              self.clientDict[clientId].subClientDict[subClientId].socket2server.write(Buffer.from(buf2server))
+            })
+            self.clientDict[clientId] = {
+              subClientDict:{},
+              peerAnswer,
             }
-            setTimeout(self.clientDict[client_id].subClientDict[subClientId].intervalFunc, 10)
           }
+          break
         }
-        self.clientDict[client_id].subClientDict[subClientId].intervalFunc()
-      })
-      socket2server.on('data', async (data) => {
-        // let buf = Buffer.from(JSON.stringify({client_id, subClientId, data}))
-        self.clientDict[client_id].subClientDict[subClientId].sendBufList.push(data)
-      })
-      socket2server.on('end', () => {
-        debugSignal('disconnected from server')
-      })
-      socket2server.on('close', err => {
-        debugSignal('socket closed with local server, err:', err)
-        self.socket.emit('remoteServer_disconnected', {server_id:self.server_id, client_id, subClientId})
-        clearInterval(self.clientDict[client_id].subClientDict[subClientId].intervalObj)
-        delete self.clientDict[client_id].subClientDict[subClientId]
-      })
-      socket2server.on('error', (err) => {
-        errorLog('error to connect to local server, err:', err)
-        self.socket.emit('remoteServer_error_connect', {server_id:self.server_id, client_id, subClientId})
-      })
-      if (!(subClientId in self.clientDict[client_id].subClientDict)) {
-        self.clientDict[client_id].subClientDict[subClientId] = {
-          socket2server,
-          dataList:[],
-          sendBufList:[],
+        case 'client_signal_candidate': {
+          let peerAnswer = self.clientDict[clientId].peerAnswer
+          peerAnswer.addIceCandidate(buf)
+          break
         }
-      } else {
-        self.clientDict[client_id].subClientDict[subClientId].socket2server = socket2server
-        self.clientDict[client_id].subClientDict[subClientId].sendBufList = []
+        case 'disconnectRemoteServer': {
+          if (subClientId in self.clientDict[clientId].subClientDict) {
+            self.clientDict[clientId].subClientDict[subClientId].socket2server.end() //close the socket to local server.
+          }
+          break
+        }
+        case 'connectRemoteServer': {
+          const socket2server = net.createConnection({ port: parseInt(self.server_port)}, () => {
+            // 'connect' listener
+            debugSignal('connected to server for clientId:', clientId, 'subClientId:', subClientId)
+            self.clientDict[clientId].subClientDict[subClientId].connected2LocalServer = true
+            self.socket.emit('serverSignal', {
+              event: 'remoteServer_connected',
+              serverId:self.serverId, clientId, subClientId
+            })
+            self.clientDict[clientId].subClientDict[subClientId].intervalFunc = async () => {
+              if (subClientId in self.clientDict[clientId].subClientDict) {
+                // peer sending thread
+                let sendBufList = self.clientDict[clientId].subClientDict[subClientId].sendBufList
+                let buf = sendBufList.shift()
+                if (buf) {
+                  let peerAnswer = self.clientDict[clientId].peerAnswer
+                  // debugData('bufferedAmount:', peerAnswer._channel.bufferedAmount)
+                  if (buf.length > 200000) {
+                    await delayMs(500)
+                  }
+                  debugData('sending data to peer, buf:', buf.buffer)
+                  peerAnswer.send(buf.buffer, subClientId)
+                }
+                setTimeout(self.clientDict[clientId].subClientDict[subClientId].intervalFunc, 10)
+              }
+            }
+            self.clientDict[clientId].subClientDict[subClientId].intervalFunc()
+          })
+          socket2server.on('data', async (data) => {
+            // let buf = Buffer.from(JSON.stringify({clientId, subClientId, data}))
+            self.clientDict[clientId].subClientDict[subClientId].sendBufList.push(data)
+          })
+          socket2server.on('end', () => {
+            debugSignal('disconnected from server')
+          })
+          socket2server.on('close', err => {
+            debugSignal('socket closed with local server, err:', err)
+            self.socket.emit('serverSignal', {
+              event: 'remoteServer_disconnected',
+              serverId:self.serverId, clientId, subClientId
+            })
+            clearInterval(self.clientDict[clientId].subClientDict[subClientId].intervalObj)
+            delete self.clientDict[clientId].subClientDict[subClientId]
+          })
+          socket2server.on('error', (err) => {
+            errorLog('error to connect to local server, err:', err)
+            self.socket.emit('serverSignal', {
+              event: 'remoteServer_error_connect',
+              serverId:self.serverId, clientId, subClientId,
+            })
+          })
+          if (!(subClientId in self.clientDict[clientId].subClientDict)) {
+            self.clientDict[clientId].subClientDict[subClientId] = {
+              socket2server,
+              dataList:[],
+              sendBufList:[],
+            }
+          } else {
+            self.clientDict[clientId].subClientDict[subClientId].socket2server = socket2server
+            self.clientDict[clientId].subClientDict[subClientId].sendBufList = []
+          }
+          break
+        }
+        case 'errMsg': {
+          errorLog('error:', buf)
+          break
+        }
+        default: {
+          errorLog('unknown event:', event)
+          break
+        }
       }
-    })
-    self.socket.on('errMsg', (data) => {
-      errorLog('error:', data)
     })
   }
 }

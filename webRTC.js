@@ -10,13 +10,14 @@ class WebRTC extends EventEmitter {
     this.type = ''
     this.nodeId = ''
     this.isConnected = false
-    this.onicecandidate = false
+    this.candidates = [] // candidates to be sent
     this.isDisconnected = false
     this.events = {
       CONNECT: 'connect',
       DATA: 'data',
       DISCONNECT: 'disconnect',
-      SIGNAL: 'signal'
+      SIGNAL_DESCR: 'signal_description',
+      SIGNAL_CANDIDATE: 'signal_candidate',
     }
   }
 
@@ -69,11 +70,17 @@ class WebRTC extends EventEmitter {
     }
 
     peer.onicecandidate = evt => {
-      if (!evt.candidate) {
-        if (!this.onicecandidate) {
-          this.onicecandidate = true
-          this.emit(this.events.SIGNAL, peer.localDescription)
-        }
+      console.log(JSON.stringify(evt))
+      if (evt.candidate) { // we have candidate to signal
+        this.candidates.push(evt.candidate)
+      } else { // we have no more candidates to signal
+        this.emit(this.events.SIGNAL_DESCR, peer.localDescription)
+        setTimeout( () => {
+          // wait a while, and send candidates.
+          for(let i=0; i<this.candidates.length; i++) {
+            this.emit(this.events.SIGNAL_CANDIDATE, this.candidates[i])
+          }
+        }, 1000)
       }
     }
 
@@ -123,6 +130,10 @@ class WebRTC extends EventEmitter {
     }
   }
 
+  async addIceCandidate(candidate) {
+    return this.rtc.addIceCandidate(candidate)
+  }
+
   send(data, label) {
     if (!(label in this.dataChannels)) {
       console.log('this.dataChannels:', Object.keys(this.dataChannels), ', label:', label)
@@ -142,6 +153,13 @@ class WebRTC extends EventEmitter {
 
   connecting(nodeId) {
     this.nodeId = nodeId
+  }
+
+  destroy() {
+    for (let label in this.dataChannels) {
+      this.dataChannels[label].close()
+    }
+    this.rtc.close()
   }
 }
 

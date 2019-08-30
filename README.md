@@ -17,12 +17,12 @@ npm install
 #### server side:
 ```
 node p2p-mapping-server.js 22   # mapping port 22/ssh to another machine
-                                # which will generate a server_id for the port
+                                # which will generate a serverId for the port
 ```
 #### client side:
 ```
 # establish p2p tunnel between client and server.
-node p2p-mapping-client.js <server_id>
+node p2p-mapping-client.js <serverId>
 ```
 now we can access remote ssh server by:
 ```
