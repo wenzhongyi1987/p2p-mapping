@@ -26,6 +26,7 @@ Mapping tcp port of local server to another machine across NAT, share your serve
 
 - p2p port mapping, no data relay server is needed
 - unique random serverId is generated, to secure your tunnel.
+- support multiple clients and multiple connections for each client.
 - it's actually a tunnel, imagine use cases: proxy server, vnc server, etc. you can share your servers across NAT!
 
 ## install
