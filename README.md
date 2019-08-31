@@ -24,7 +24,8 @@ Mapping tcp port of local server to another machine across NAT, share your serve
 
 ## features
 
-- p2p port mapping, no data relay server is needed
+- p2p port mapping, no data relay server is needed.
+- NAT traversal without router configuration.
 - unique random serverId is generated, to secure your tunnel.
 - support multiple clients and multiple connections for each client.
 - windows/linux server port mapping tested.
