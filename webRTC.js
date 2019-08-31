@@ -30,13 +30,13 @@ class WebRTC extends EventEmitter {
       this.dataChannels[label] = dc
       return dc
     } catch (dce) {
-      console.log('dc established error: ' + dce.message)
+      console.log('datachannel established error: ' + dce.message)
     }
   }
 
   _dataChannelEvents(channel) {
     channel.onopen = () => {
-      console.log('dc opened')
+      console.log('data channel opened')
       this.emit(this.events.CONNECT)
     }
     channel.onmessage = event => {
@@ -71,7 +71,7 @@ class WebRTC extends EventEmitter {
     }
 
     peer.onicecandidate = evt => {
-      console.log(JSON.stringify(evt))
+      console.log('onicecandidate, evt:', JSON.stringify(evt))
       if (evt.candidate) { // we have candidate to signal
         this.candidates.push(evt.candidate)
       } else { // we have no more candidates to signal
@@ -143,7 +143,7 @@ class WebRTC extends EventEmitter {
     try {
       this.dataChannels[label].send(data)
     } catch (error) {
-      console.log('dc send error', error)
+      console.log('datachannel send error', error)
       this.isDisconnected = true
     }
   }

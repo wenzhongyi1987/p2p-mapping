@@ -35,9 +35,7 @@ class MappingServer extends EventEmitter {
       switch(event) {
         case 'client_signal_description': {
           let clientSignalData = buf
-          if (clientId in self.clientDict) {
-            await self.clientDict[clientId].peerAnswer.makeAnswer(clientSignalData, { disable_stun: false})
-          } else {
+          if (!(clientId in self.clientDict)) {
             const peerAnswer = new WebRTC()
             peerAnswer.on('signal_description', signalData => { // server response
               self.socket.emit('serverSignal', {
