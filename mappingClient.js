@@ -72,6 +72,10 @@ class MappingClient extends EventEmitter {
       self.emit('errMsg', err)
     })
 
+    self.socket.on('disconnect', () => {
+      errorLog('Error: signal server disconnected')
+      process.exit(1)
+    })
     self.socket.on('connect', () => {
       self.socket.emit('client_register', {serverId:self.serverId, clientId:self.clientId})
     })

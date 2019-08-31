@@ -123,7 +123,7 @@ class MappingServer extends EventEmitter {
                   debugData('sending data to peer, buf:', buf.buffer)
                   peerAnswer.send(buf.buffer, subClientId)
                 }
-                setTimeout(self.clientDict[clientId].subClientDict[subClientId].intervalFunc, 10)
+                setTimeout(self.clientDict[clientId].subClientDict[subClientId].intervalFunc, 1)
               }
             }
             self.clientDict[clientId].subClientDict[subClientId].intervalFunc()
