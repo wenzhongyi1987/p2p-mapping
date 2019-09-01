@@ -6,7 +6,7 @@ const MappingClient = require('./mappingClient')
 let serverId = process.argv[2]
 
 const localServer = net.createServer()
-localServer.listen(9102, '127.0.0.1', () => {
+localServer.listen(9102, () => { // listen on all local interfaces, that we can access it from other machines as well
   console.log('server bound on', 9102)
 })
 
