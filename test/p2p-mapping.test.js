@@ -64,7 +64,7 @@ test('register_client', async () => {
       resolve(err)
     })
     client.on('client_registered', data => {
-      client.client_peer.destroy() // destroy the peer
+      client.client_peer.close() // close the peer
       resolve(data)
     })
     signalSocket.emit('client_registered', { client_id:2 })
@@ -88,7 +88,7 @@ test('connection from local client, will trigger another connection on remote si
     client.on('client_registered', data => {
       client.on('connection', ({client_id, subClientId}) => {
         client.on('remoteServer_connected', ({client_id, subClientId}) => {
-          client.client_peer.destroy() // destroy the peer
+          client.client_peer.close() // close the peer
           resolve(client)
         })
         signalSocket.emit('remoteServer_connected', { subClientId:20 }) // step 3

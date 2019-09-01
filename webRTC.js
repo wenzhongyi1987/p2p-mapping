@@ -2,6 +2,8 @@
 const EventEmitter = require('events')
 const { RTCPeerConnection, RTCSessionDescription } = require('wrtc')
 
+const delayMs = ms => new Promise(res => setTimeout(res, ms))
+
 class WebRTC extends EventEmitter {
   constructor() {
     super()
@@ -12,6 +14,7 @@ class WebRTC extends EventEmitter {
     this.isConnected = false
     this.candidates = [] // candidates to be sent
     this.isDisconnected = false
+    this.setAnswerFlag = false
     this.events = {
       CONNECT: 'connect',
       DATA: 'data',
@@ -65,23 +68,24 @@ class WebRTC extends EventEmitter {
       })
     } else {
       peer = new RTCPeerConnection({
-        iceServers: [{ urls: 'stun:stun.webrtc.ecl.ntt.com:3478' },
-                     { urls: 'stun:stun.l.google.com:19302'}]
+        iceServers: [{ urls: 'stun:stun.webrtc.ecl.ntt.com:3478' }],
       })
     }
 
-    peer.onicecandidate = evt => {
+    peer.onicecandidate = async (evt) => {
       console.log('onicecandidate, evt:', JSON.stringify(evt))
       if (evt.candidate) { // we have candidate to signal
-        this.candidates.push(evt.candidate)
-      } else { // we have no more candidates to signal
-        this.emit(this.events.SIGNAL_DESCR, peer.localDescription)
-        setTimeout( () => {
-          // wait a while, and send candidates.
-          for(let i=0; i<this.candidates.length; i++) {
-            this.emit(this.events.SIGNAL_CANDIDATE, this.candidates[i])
+        if (this.type === 'offer') {
+          let i
+          for ( i = 0; i < 20; i++) {
+            if (this.setAnswerFlag === true) {
+              break
+            }
+            await delayMs(1000)
           }
-        }, 1000)
+        }
+        console.log('sent candidate')
+        this.emit(this.events.SIGNAL_CANDIDATE, evt.candidate)
       }
     }
 
@@ -100,6 +104,7 @@ class WebRTC extends EventEmitter {
       try {
         let offer = await this.rtc.createOffer()
         await this.rtc.setLocalDescription(offer)
+        this.emit(this.events.SIGNAL_DESCR, this.rtc.localDescription)
       } catch (err) {
         console.error('setLocalDescription(offer) ERROR: ', err)
       }
@@ -110,6 +115,7 @@ class WebRTC extends EventEmitter {
   setAnswer(sdp) {
     try {
       this.rtc.setRemoteDescription(new RTCSessionDescription(sdp))
+      this.setAnswerFlag = true
     } catch (err) {
       console.error('setRemoteDescription(answer) ERROR: ', err)
     }
@@ -123,6 +129,7 @@ class WebRTC extends EventEmitter {
       try {
         const answer = await this.rtc.createAnswer()
         await this.rtc.setLocalDescription(answer)
+        this.emit(this.events.SIGNAL_DESCR, this.rtc.localDescription)
       } catch (err) {
         console.error(err)
       }
@@ -156,7 +163,7 @@ class WebRTC extends EventEmitter {
     this.nodeId = nodeId
   }
 
-  destroy() {
+  close() {
     for (let label in this.dataChannels) {
       this.dataChannels[label].close()
     }

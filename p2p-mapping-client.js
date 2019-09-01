@@ -19,3 +19,8 @@ var client = new MappingClient(serverId, localServer, signalSocket)
 client.on('error', err => {
   console.log('err:', err)
 })
+
+process.on('SIGINT', () => {
+  console.log("Caught interrupt signal");
+  client.close()
+});

@@ -85,6 +85,9 @@ class MappingClient extends EventEmitter {
       // self.socket.emit('client_signal_description', { self.serverId, self.clientId, signalData:'from client'})
       self.peerOffer = new WebRTC();
       self.peerOffer.makeOffer({ disable_stun: false });
+      self.peerOffer.on('disconnect', () => {
+        self.peerOffer.close()
+      })
       self.peerOffer.on('signal_description', signalData => {
         debugSignal('offer generated.')
         self.socket.emit('clientSignal', {
@@ -161,6 +164,12 @@ class MappingClient extends EventEmitter {
         }
       }
     })
+  }
+
+  close() {
+    this.peerOffer.close()
+    this.server.close()
+    this.socket.close()
   }
 }
 

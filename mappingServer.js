@@ -37,6 +37,9 @@ class MappingServer extends EventEmitter {
           let clientSignalData = buf
           if (!(clientId in self.clientDict)) {
             const peerAnswer = new WebRTC()
+            peerAnswer.on('disconnect', () => {
+              peerAnswer.close()
+            })
             peerAnswer.on('signal_description', signalData => { // server response
               self.socket.emit('serverSignal', {
                 event: 'server_signal_description',
