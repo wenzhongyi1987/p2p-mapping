@@ -14,13 +14,13 @@ class MappingServer extends EventEmitter {
     super()
     let self = this
     self.serverId = undefined
-    self.server_port = server_port // server port to be published to peer.
+    self.server_port = server_port // server port to be mapped to peer.
     self.clientDict = {}
     self.socket = signalSocket
     self.serverId = uuidv1()
 
     self.socket.on('connect', () => {
-      self.socket.emit('server_register', { serverId:self.serverId })
+      self.socket.emit('server_register', { serverId:self.serverId, server_port })
     })
     self.socket.on('disconnect', () => {
       debugSignal('disconnected')
@@ -98,7 +98,8 @@ class MappingServer extends EventEmitter {
           break
         }
         case 'disconnectRemoteServer': {
-          if (subClientId in self.clientDict[clientId].subClientDict) {
+          if (subClientId in self.clientDict[clientId].subClientDict &&
+              self.clientDict[clientId].subClientDict[subClientId].socket2server) {
             self.clientDict[clientId].subClientDict[subClientId].socket2server.end() //close the socket to local server.
           }
           break
